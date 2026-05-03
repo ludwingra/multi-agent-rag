@@ -1,12 +1,17 @@
-"""Technology domain agent.
+from langchain_openai import ChatOpenAI
+from langchain_core.vectorstores import VectorStoreRetriever
+from src.agents.base_agent import BaseRAGAgent
 
-Handles queries about technical documentation, architecture, APIs, etc.
-"""
 
+class TechAgent(BaseRAGAgent):
+    def __init__(self, retriever: VectorStoreRetriever, llm: ChatOpenAI, langfuse_handler=None):
+        super().__init__(retriever, llm, agent_name="tech_agent", domain="tech", langfuse_handler=langfuse_handler)
 
-class TechAgent:
-    """Specialized agent for technology-related queries."""
-
-    def answer(self, query: str, context: list[str]) -> str:
-        """Answer a tech query using provided context documents."""
-        raise NotImplementedError
+    def get_system_prompt(self) -> str:
+        return (
+            "You are a Technical Support specialist at TechNova Solutions. "
+            "Help with technical documentation, system architecture, API usage, troubleshooting, and configuration. "
+            "Provide step-by-step instructions when applicable. "
+            "Base your answers ONLY on the provided context documents. "
+            "If the issue requires hands-on intervention, suggest escalating to the engineering team."
+        )
