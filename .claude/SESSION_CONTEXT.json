@@ -1,64 +1,21 @@
 {
   "schema_version": "1.0",
-  "session_id": "94710e37-af59-4796-b6e6-dc69058414c3",
-  "project_name": "proyecto",
-  "runtime": "unknown",
-  "framework": "unknown",
-  "language": "unknown",
-  "package_manager": "npm",
-  "project_type": "new",
-  "created_at": "2026-05-03T17:51:38.892Z",
+  "session_id": "sess-20260503-init",
+  "initialized_at": "2026-05-03T18:00:00Z",
+  "anchor_commit": "331567da023a0c38af8e63ec9157f8d1a1376580",
+  "active_work_item": null,
+  "active_agent": "initializer",
+  "progress_step": 0,
+  "progress_total": 7,
   "token_budget_used_pct": 0,
-  "token_budget_layers": {
-    "total_context_window": 200000,
-    "layers": {
-      "system": {
-        "name": "system",
-        "allocated_pct": 15,
-        "allocated_tokens": 30000,
-        "used_tokens": 0,
-        "used_pct": 0,
-        "status": "GREEN"
-      },
-      "skills": {
-        "name": "skills",
-        "allocated_pct": 15,
-        "allocated_tokens": 30000,
-        "used_tokens": 0,
-        "used_pct": 0,
-        "status": "GREEN"
-      },
-      "agents": {
-        "name": "agents",
-        "allocated_pct": 10,
-        "allocated_tokens": 20000,
-        "used_tokens": 0,
-        "used_pct": 0,
-        "status": "GREEN"
-      },
-      "conversation": {
-        "name": "conversation",
-        "allocated_pct": 40,
-        "allocated_tokens": 80000,
-        "used_tokens": 0,
-        "used_pct": 0,
-        "status": "GREEN"
-      },
-      "tool_results": {
-        "name": "tool_results",
-        "allocated_pct": 20,
-        "allocated_tokens": 40000,
-        "used_tokens": 0,
-        "used_pct": 0,
-        "status": "GREEN"
-      }
-    },
-    "aggregate_used_pct": 0,
-    "aggregate_status": "GREEN",
-    "compact_threshold_pct": 60,
-    "checkpoint_threshold_pct": 85,
-    "strategy": "proactive"
-  },
-  "fallback_tools_available": [],
-  "initialized_at": "2026-05-03T17:55:16Z"
+  "skills_verified": [],
+  "mcps_active": ["filesystem", "git"],
+  "last_checkpoint_sha": null,
+  "project_name": "multi-agent-rag",
+  "runtime": "python",
+  "framework": "langchain",
+  "language": "python",
+  "package_manager": "pip",
+  "project_type": "new",
+  "_note": "Generado por Initializer Agent. Context-collector completado desde plan existente."
 }

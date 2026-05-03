@@ -5,3 +5,5 @@
 {"ts":"2026-05-03T17:55:57Z","event":"output_optimizer","status":"wrapped","base_cmd":"ls"}
 {"ts":"2026-05-03T17:56:27Z","event":"output_optimizer","status":"wrapped","base_cmd":"ls"}
 {"ts":"2026-05-03T17:57:47Z","event":"output_optimizer","status":"critical_skip","base_cmd":"git"}
+{"ts":"2026-05-03T18:00:00Z","event":"output_optimizer","status":"critical_skip","base_cmd":"git"}
+{"ts":"2026-05-03T18:00:15Z","event":"output_optimizer","status":"critical_skip","base_cmd":"git"}

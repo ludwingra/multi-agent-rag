@@ -1,39 +1,50 @@
 # TECH_DECISIONS.md
-> ADRs del proyecto — ASD SDK v3.18.0 | Última actualización: 2026-05-03T17:51:38.889Z
+> ADRs del proyecto — ASD SDK v3.18.0 | Última actualización: 2026-05-03
 
-## ADR-001: IaC Tool
-- **Decisión:** OpenTofu (default) — drop-in Terraform, licencia MPL 2.0, CNCF Sandbox
-- **Estado:** [PENDIENTE — confirmar si aplica al proyecto]
-- **Alternativas consideradas:** Terraform, Pulumi, CDK
+## ADR-001: Framework RAG — LangChain
+- **Decisión:** LangChain (no LangGraph)
+- **Estado:** Activo
+- **Alternativas consideradas:** LangGraph, LlamaIndex, Haystack
+- **Justificación:** El proyecto pide explícitamente LangChain. RunnableSequence/RunnableBranch/RunnableLambda son suficientes para routing condicional sin grafo de estados.
 
-## ADR-002: Estrategia de Branching
-- **Decisión:** GitFlow simplificado — main + develop + feature/* + hotfix/*
-- **Estado:** Propuesto
+## ADR-002: Vector Store — ChromaDB
+- **Decisión:** ChromaDB con persistencia local en disco (`./chroma_db/`)
+- **Estado:** Activo
+- **Alternativas consideradas:** Pinecone, Weaviate, FAISS
+- **Justificación:** Ligero, sin infraestructura externa, integración nativa con LangChain. Adecuado para proyecto educativo.
+
+## ADR-003: LLM — gpt-4o-mini
+- **Decisión:** OpenAI gpt-4o-mini para clasificación y generación RAG
+- **Estado:** Activo
+- **Alternativas consideradas:** gpt-4o, Claude, modelos open-source
+- **Justificación:** Costo-eficiente para clasificación de intenciones y RAG sobre documentos cortos.
+
+## ADR-004: Observabilidad — Langfuse
+- **Decisión:** Langfuse (cloud) para tracing jerárquico + Score API para evaluación
+- **Estado:** Activo
+- **Alternativas consideradas:** LangSmith, Weights & Biases, custom logging
+- **Justificación:** Open-source, traces jerárquicos, Score API nativa para evaluación automática.
+
+## ADR-005: Chunking Strategy
+- **Decisión:** RecursiveCharacterTextSplitter con chunk_size=500, chunk_overlap=50
+- **Estado:** Activo
+- **Justificación:** Documentos son cortos (políticas, FAQs ~200-500 palabras). Chunks pequeños mejoran precisión de retrieval. RecursiveCharacterTextSplitter respeta estructura markdown.
+
+## ADR-006: Estructura Modular
+- **Decisión:** Archivos separados en src/ con notebook principal como demo
+- **Estado:** Activo
+- **Alternativas consideradas:** Todo en notebook
+- **Justificación:** Facilita testing, mantenibilidad, demuestra criterio de ingeniería.
+
+## ADR-007: Estrategia de Branching
+- **Decisión:** main + feature branches simples
+- **Estado:** Activo
 - **Convención de commits:** Conventional Commits (feat/fix/chore/docs/refactor)
 
-## ADR-003: Modelo Claude Code
-- **Sesión principal (orquestador):** Opus 4.6 — `model: "claude-opus-4-6"` en settings.json
-- **Agentes de planificación:** Opus 4.6 — `Agent(model: "opus")` por invocación
-- **Agentes de ejecución:** Sonnet 4.6 — `Agent(model: "sonnet")` por invocación
-- **Estrategia:** Mixta — agentes ASD custom + agentes nativos de Claude Code como fallback
+## ADR-008: Modelo Claude Code
+- **Sesión principal (orquestador):** Opus 4.6
+- **Agentes de ejecución:** Sonnet 4.6
 - **Estado:** Activo
-
-## ADR-004: Análisis Estático
-- **Decisión:** [PENDIENTE — SonarQube | SonarCloud | Ninguno]
-- **Quality Gate mínimo:** 80% cobertura de líneas
-- **Estado:** [PENDIENTE]
-
-## ADR-005: Estrategia de Testing
-- **Framework:** [PENDIENTE]
-- **Cobertura mínima:** 80% por Work Item
-- **E2E:** [PENDIENTE — Playwright | Cypress | Ninguno]
-- **Estado:** [PENDIENTE]
-
-## ADR-006: Cloud y Despliegue
-- **Cloud provider:** [PENDIENTE — AWS | GCP | Azure | On-premise]
-- **Estrategia:** [PENDIENTE — Blue/Green | Canary | Rolling]
-- **Entornos:** [PENDIENTE — dev | staging | prod]
-- **Estado:** [PENDIENTE]
 
 ---
 *Nuevos ADRs: usar formato ADR-NNN con campos Decisión, Estado, Alternativas, Consecuencias.*

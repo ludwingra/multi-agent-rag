@@ -1,27 +1,26 @@
 # API_CONTRACTS.md
-> Contratos de APIs internas y externas — ASD SDK v3.18.0
+> Contratos de APIs externas — ASD SDK v3.18.0 | Última actualización: 2026-05-03
 
 ## APIs Internas
 
-| Endpoint | Método | Contrato | Agente responsable |
-|----------|--------|----------|-------------------|
-| [PENDIENTE] | GET/POST | [PENDIENTE] | [PENDIENTE] |
+No aplica — aplicación single-process, sin endpoints HTTP expuestos.
+
+Interfaz interna principal:
+```python
+Orchestrator.route(query: str, user_id: str = "test-user") -> dict
+# Returns: {query, intent, confidence, reasoning, answer, sources, agent}
+```
 
 ## APIs Externas / Integraciones
 
-| Servicio | Tipo | Docs | Credenciales |
-|----------|------|------|-------------|
-| [PENDIENTE] | REST/SDK/Webhook | [URL] | .env.SERVICIO_API_KEY |
+| Servicio | Tipo | Credenciales |
+|----------|------|-------------|
+| OpenAI | REST/SDK (langchain-openai) | .env → OPENAI_API_KEY |
+| Langfuse | REST/SDK (langfuse) | .env → LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST |
 
 ## Contratos de Mensajes (Events/MQ)
 
-| Topic/Queue | Productor | Consumidor | Schema |
-|-------------|-----------|------------|--------|
-| [PENDIENTE] | [PENDIENTE] | [PENDIENTE] | [PENDIENTE] |
-
-## Cambios Pendientes
-
-- [PENDIENTE — documentar aquí breaking changes planificados]
+N/A — sin bus de eventos.
 
 ---
-*Actualizado por api-contract-extractor o backend-architect.*
+*Actualizado por context-collector — 2026-05-03.*
