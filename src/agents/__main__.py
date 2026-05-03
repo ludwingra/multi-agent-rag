@@ -1,27 +1,42 @@
-from dotenv import load_dotenv
-load_dotenv()
+"""Smoke test for the Orchestrator agent."""
 
-from src.config import Settings
-from langchain_openai import ChatOpenAI
-from src.vector_store import VectorStoreManager, DOMAINS
-from src.agents import HRAgent, TechAgent, FinanceAgent
+from src.agents.orchestrator import Orchestrator
 
-settings = Settings()
-llm = ChatOpenAI(model=settings.MODEL_NAME)
-vsm = VectorStoreManager()
 
-agent_configs = [
-    ("hr", DOMAINS["hr"][1], HRAgent, "What are the employee benefits at TechNova?"),
-    ("tech", DOMAINS["tech"][1], TechAgent, "How do I configure API access?"),
-    ("finance", DOMAINS["finance"][1], FinanceAgent, "What is the expense reimbursement process?"),
-]
+def main():
+    print("Initializing Orchestrator...")
+    orchestrator = Orchestrator()
+    print("Orchestrator ready.\n")
 
-for domain, collection_name, AgentClass, query in agent_configs:
-    retriever = vsm.get_retriever(collection_name, k=3)
-    agent = AgentClass(retriever=retriever, llm=llm)
-    result = agent.invoke(query)
-    print(f"[{result['agent_name']}] domain={result['domain']}")
-    print(f"  answer: {result['answer'][:200]}")
-    print(f"  sources: {len(result['sources'])}")
+    # Test queries — one per domain + one unknown
+    test_queries = [
+        {"query": "What is the vacation policy for new employees?", "expected_intent": "hr"},
+        {"query": "How do I configure the VPN on my laptop?", "expected_intent": "tech"},
+        {"query": "What is the process for submitting expense reports?", "expected_intent": "finance"},
+        {"query": "What is the meaning of life?", "expected_intent": "unknown"},
+    ]
 
-print("Smoke test complete.")
+    print("=" * 60)
+    print("BATCH ROUTING TEST")
+    print("=" * 60)
+
+    result = orchestrator.batch_route(test_queries)
+
+    for r in result["results"]:
+        intent_match = r.get("intent_match", "N/A")
+        marker = "✓" if intent_match is True else ("✗" if intent_match is False else "?")
+        print(f"\n[{marker}] Query: {r['query'][:60]}...")
+        print(f"    Intent: {r['intent']} (confidence: {r['confidence']:.2f})")
+        print(f"    Expected: {r.get('expected_intent', 'N/A')}")
+        print(f"    Agent: {r['agent']}")
+        print(f"    Answer: {r['answer'][:100]}...")
+
+    print(f"\n{'=' * 60}")
+    print(f"ACCURACY: {result['correct']}/{result['evaluated']}")
+    if result['accuracy'] is not None:
+        print(f"Score: {result['accuracy']:.0%}")
+    print(f"{'=' * 60}")
+
+
+if __name__ == "__main__":
+    main()
