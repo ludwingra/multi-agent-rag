@@ -1,0 +1,116 @@
+{
+  "test_queries": [
+    {
+      "id": 1,
+      "query": "How many vacation days do I get per year, and do unused days roll over to the next year?",
+      "expected_intent": "hr",
+      "expected_keywords": ["vacation", "PTO", "rollover", "accrual"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 2,
+      "query": "What health insurance plans does TechNova offer, and when can I make changes to my coverage?",
+      "expected_intent": "hr",
+      "expected_keywords": ["health insurance", "benefits", "open enrollment", "coverage"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 3,
+      "query": "I'm starting next Monday — what does the onboarding process look like for my first week?",
+      "expected_intent": "hr",
+      "expected_keywords": ["onboarding", "orientation", "new employee", "first week"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 4,
+      "query": "How often are performance reviews conducted, and how does the rating scale affect my compensation?",
+      "expected_intent": "hr",
+      "expected_keywords": ["performance review", "rating", "compensation", "annual"],
+      "difficulty": "medium"
+    },
+    {
+      "id": 5,
+      "query": "How do I connect to the VPN when working from home or a coffee shop?",
+      "expected_intent": "tech",
+      "expected_keywords": ["VPN", "remote access", "connect", "credentials"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 6,
+      "query": "I need access to the company GitHub organization — who should I contact and what's the process?",
+      "expected_intent": "tech",
+      "expected_keywords": ["GitHub", "access", "repository", "permissions"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 7,
+      "query": "One of our production services is returning 500 errors. What's the incident response procedure I should follow?",
+      "expected_intent": "tech",
+      "expected_keywords": ["incident response", "production", "escalation", "on-call"],
+      "difficulty": "medium"
+    },
+    {
+      "id": 8,
+      "query": "My new MacBook just arrived. What software do I need to install and how do I get it configured for development?",
+      "expected_intent": "tech",
+      "expected_keywords": ["laptop", "provisioning", "setup", "development environment"],
+      "difficulty": "medium"
+    },
+    {
+      "id": 9,
+      "query": "I attended a client dinner last week. How do I submit the expense for reimbursement and what receipts do I need?",
+      "expected_intent": "finance",
+      "expected_keywords": ["expense reimbursement", "receipt", "client entertainment", "submission"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 10,
+      "query": "What is the maximum daily hotel allowance when traveling for business, and are flights booked through a company portal?",
+      "expected_intent": "finance",
+      "expected_keywords": ["travel policy", "hotel", "per diem", "business travel"],
+      "difficulty": "easy"
+    },
+    {
+      "id": 11,
+      "query": "We received an invoice from a new vendor. What's the approval process before we can schedule payment?",
+      "expected_intent": "finance",
+      "expected_keywords": ["vendor", "invoice", "approval", "payment"],
+      "difficulty": "medium"
+    },
+    {
+      "id": 12,
+      "query": "My team needs to purchase a SaaS tool for $4,000 annually. What procurement steps do I need to follow?",
+      "expected_intent": "finance",
+      "expected_keywords": ["procurement", "purchase requisition", "approval", "budget"],
+      "difficulty": "medium"
+    },
+    {
+      "id": 13,
+      "query": "How do I set up my new laptop so I can access all the internal tools I need before my first day officially begins?",
+      "expected_intent": "hr",
+      "expected_keywords": ["onboarding", "laptop", "setup", "internal tools", "access"],
+      "difficulty": "hard"
+    },
+    {
+      "id": 14,
+      "query": "What's the weather forecast for San Francisco this week?",
+      "expected_intent": "unknown",
+      "expected_keywords": [],
+      "difficulty": "hard"
+    },
+    {
+      "id": 15,
+      "query": "What are the tax implications of the stock options and health benefits in my total compensation package?",
+      "expected_intent": "hr",
+      "expected_keywords": ["tax", "stock options", "benefits", "compensation", "payroll"],
+      "difficulty": "hard"
+    },
+    {
+      "id": 16,
+      "query": "Can I use my corporate card to buy equipment for my home office, and does that count as a taxable benefit?",
+      "expected_intent": "finance",
+      "expected_keywords": ["corporate card", "home office", "equipment", "reimbursement", "taxable"],
+      "difficulty": "hard"
+    }
+  ]
+}
