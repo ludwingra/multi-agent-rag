@@ -1,0 +1,11 @@
+langchain
+langchain-openai
+langchain-community
+langfuse
+openai
+chromadb
+tiktoken
+python-dotenv
+jupyter
+ipykernel
+pydantic-settings
