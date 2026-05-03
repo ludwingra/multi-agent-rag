@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "work_item_id": null,
+  "work_item_type": null,
+  "hu_id": null,
+  "agent_id": null,
+  "step_current": 0,
+  "step_total": 0,
+  "step_label": null,
+  "status": "PENDING",
+  "last_verified_commit": null,
+  "rollback_ref": null,
+  "artifacts_produced": [],
+  "acceptance_criteria_met": [],
+  "token_budget_used_pct": 0,
+  "token_budget_layers": {
+    "total_context_window": 200000,
+    "layers": {
+      "system": {
+        "name": "system",
+        "allocated_pct": 15,
+        "allocated_tokens": 30000,
+        "used_tokens": 0,
+        "used_pct": 0,
+        "status": "GREEN"
+      },
+      "skills": {
+        "name": "skills",
+        "allocated_pct": 15,
+        "allocated_tokens": 30000,
+        "used_tokens": 0,
+        "used_pct": 0,
+        "status": "GREEN"
+      },
+      "agents": {
+        "name": "agents",
+        "allocated_pct": 10,
+        "allocated_tokens": 20000,
+        "used_tokens": 0,
+        "used_pct": 0,
+        "status": "GREEN"
+      },
+      "conversation": {
+        "name": "conversation",
+        "allocated_pct": 40,
+        "allocated_tokens": 80000,
+        "used_tokens": 0,
+        "used_pct": 0,
+        "status": "GREEN"
+      },
+      "tool_results": {
+        "name": "tool_results",
+        "allocated_pct": 20,
+        "allocated_tokens": 40000,
+        "used_tokens": 0,
+        "used_pct": 0,
+        "status": "GREEN"
+      }
+    },
+    "aggregate_used_pct": 0,
+    "aggregate_status": "GREEN",
+    "compact_threshold_pct": 60,
+    "checkpoint_threshold_pct": 85,
+    "strategy": "proactive"
+  },
+  "compact_applied": false,
+  "updated_at": "2026-05-03T17:51:38.893Z",
+  "history": [],
+  "fallback_state": {
+    "active": false,
+    "trigger": null,
+    "tool": null,
+    "model": null,
+    "triggered_at": null,
+    "returned_at": null,
+    "context_path": null
+  }
+}
