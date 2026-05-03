@@ -81,8 +81,8 @@ graph TD
 
 ```bash
 # 1. Clone the repository
-git clone <repo-url>
-cd proyecto
+git clone https://github.com/ludwingra/multi-agent-rag.git
+cd multi-agent-rag
 
 # 2. Create and activate a virtual environment
 python -m venv .venv
