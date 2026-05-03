@@ -3,7 +3,7 @@
 Handles loading and chunking documents from hr_docs/, tech_docs/, and finance_docs/.
 """
 
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 
 def load_documents(directory: str) -> list[Document]:
