@@ -235,7 +235,6 @@ multi-agent-rag/
 ├── requirements.txt              # 12 dependencias Python
 ├── README.md                     # Este archivo (espanol)
 ├── README.en.md                  # Version en ingles
-├── evaluator.py                  # ResponseEvaluator — juez LLM automatizado (bonus)
 │
 ├── data/
 │   ├── hr_docs/                  # 20 documentos sinteticos de politicas de RRHH
@@ -252,6 +251,7 @@ multi-agent-rag/
     ├── tracing.py                # Fabrica de cliente Langfuse y callback handler
     ├── document_loader.py        # DocumentLoader — lee archivos .md y los fragmenta en chunks
     ├── vector_store.py           # VectorStoreManager — CRUD de ChromaDB y fabrica de retrievers
+    ├── evaluator.py              # ResponseEvaluator — juez LLM automatizado (bonus)
     └── agents/
         ├── __init__.py           # Exports publicos: HRAgent, TechAgent, FinanceAgent, Orchestrator
         ├── __main__.py           # Punto de entrada para smoke test
@@ -434,7 +434,7 @@ print(f"Precision: {batch['accuracy']:.1%}")  # ~93-100%
 
 ## Agente Evaluador (Bonus)
 
-El `ResponseEvaluator` en `evaluator.py` implementa un juez LLM automatizado que puntua cada respuesta RAG en tres dimensiones:
+El `ResponseEvaluator` en `src/evaluator.py` implementa un juez LLM automatizado que puntua cada respuesta RAG en tres dimensiones:
 
 | Dimension | Escala | Que mide |
 |-----------|--------|----------|

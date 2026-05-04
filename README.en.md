@@ -230,31 +230,32 @@ print(result["answer"])    # Grounded response from HR documents
 ```
 multi-agent-rag/
 │
-├── .env.example                  # Environment variable template (4 variables)
+├── .env.example                  # Environment variable template (5 variables)
 ├── .gitignore                    # Excludes .env, chroma_db/, __pycache__/, etc.
 ├── requirements.txt              # 12 Python dependencies
-├── README.md                     # This file
-├── evaluator.py                  # ResponseEvaluator — automated LLM judge (bonus)
+├── README.md                     # Spanish version (primary)
+├── README.en.md                  # English version
 │
 ├── data/
-��   ├── hr_docs/                  # 20 synthetic HR policy documents
+│   ├── hr_docs/                  # 20 synthetic HR policy documents
 │   ├── tech_docs/                # 20 synthetic IT/Tech support documents
 │   ├── finance_docs/             # 20 synthetic Finance policy documents
 │   └── test_queries.json         # 16 labeled test queries with expected intents
 │
 ├── notebooks/
-│   └─��� multi_agent_system.ipynb  # Main notebook — 6 sections, 27 cells
+│   └── multi_agent_system.ipynb  # Main notebook — 6 sections, 27 cells
 │
-└─�� src/
+└── src/
     ├── __init__.py
     ├── config.py                 # Pydantic Settings — env var loading and validation
     ├── tracing.py                # Langfuse client factory and callback handler
-    ├��─ document_loader.py        # DocumentLoader — reads .md files, splits into chunks
+    ├── document_loader.py        # DocumentLoader — reads .md files, splits into chunks
     ├── vector_store.py           # VectorStoreManager — ChromaDB CRUD and retriever factory
+    ├── evaluator.py              # ResponseEvaluator — automated LLM judge (bonus)
     └── agents/
         ├── __init__.py           # Public exports: HRAgent, TechAgent, FinanceAgent, Orchestrator
         ├── __main__.py           # Smoke test entry point
-        ��── base_agent.py         # BaseRAGAgent — abstract base class with retrieval chain
+        ├── base_agent.py         # BaseRAGAgent — abstract base class with retrieval chain
         ├── hr_agent.py           # HRAgent — HR domain specialist
         ├── tech_agent.py         # TechAgent — IT/Tech domain specialist
         ├── finance_agent.py      # FinanceAgent — Finance domain specialist
@@ -433,7 +434,7 @@ print(f"Accuracy: {batch['accuracy']:.1%}")  # ~93-100%
 
 ## Evaluator Agent (Bonus)
 
-The `ResponseEvaluator` in `evaluator.py` implements an automated LLM judge that scores each RAG response on three dimensions:
+The `ResponseEvaluator` in `src/evaluator.py` implements an automated LLM judge that scores each RAG response on three dimensions:
 
 | Dimension | Scale | What it measures |
 |-----------|-------|-----------------|

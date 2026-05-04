@@ -86,7 +86,7 @@ Documentos (.md)  ──>  DocumentLoader  ──>  Splitter (500 chars, 50 over
 | `src/agents/tech_agent.py` | Agente especializado en IT/Tech |
 | `src/agents/finance_agent.py` | Agente especializado en Finanzas |
 | `src/agents/orchestrator.py` | Clasifica la intencion y enruta al agente correcto |
-| `evaluator.py` | LLM judge que puntua respuestas (relevance, completeness, accuracy) |
+| `src/evaluator.py` | LLM judge que puntua respuestas (relevance, completeness, accuracy) |
 
 ---
 
