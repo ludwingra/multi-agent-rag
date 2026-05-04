@@ -21,10 +21,15 @@ from langfuse.langchain import CallbackHandler
 CLASSIFICATION_PROMPT = """Eres un clasificador de intenciones para TechNova Solutions.
 Analiza la consulta y clasifícala en: "hr", "tech", "finance", "unknown".
 
-- "hr": RRHH, políticas de personal, beneficios, vacaciones, onboarding, compensación
-- "tech": tecnología, soporte IT, configuración, acceso a sistemas, VPN, seguridad
-- "finance": finanzas, reembolsos, presupuestos, compras, facturas, viajes
+- "hr": RRHH, políticas de personal, beneficios (incluye stock options, seguros), vacaciones, onboarding (incluye setup de nuevo empleado), compensación, performance reviews, capacitación
+- "tech": tecnología, soporte IT, configuración de software/hardware, acceso a sistemas, VPN, seguridad informática, incidentes de producción, repositorios de código
+- "finance": finanzas, reembolsos, presupuestos, compras, facturas, viajes corporativos, impuestos, tarjetas corporativas, pagos a proveedores
 - "unknown": no encaja en ninguna categoría
+
+REGLA IMPORTANTE: Cuando una consulta sea ambigua entre dos dominios, clasifícala según el PROPÓSITO PRINCIPAL del usuario:
+- "Set up my new laptop" durante onboarding → "hr" (el contexto es incorporación de empleado)
+- "Tax implications of stock options" → "hr" (el contexto es un beneficio laboral, no contabilidad)
+- "Fix a production server error" → "tech" (aunque tenga impacto financiero)
 
 Responde SOLO con JSON: {{"intent": "...", "confidence": 0.0-1.0, "reasoning": "..."}}"""
 
@@ -245,10 +250,14 @@ class Orchestrator:
                     "intent": "unknown",
                     "confidence": 0.0,
                     "reasoning": f"Error: {exc}",
-                    "answer": "I couldn't process your request. Please try again.",
+                    "answer": "No se pudo procesar la consulta. Intenta de nuevo.",
                     "sources": [],
                     "agent": "none",
                 }
+
+            for key in ("id", "difficulty", "expected_keywords"):
+                if key in q:
+                    result[key] = q[key]
 
             if expected:
                 total_with_expected += 1

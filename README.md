@@ -1,282 +1,563 @@
-# Multi-Agent RAG System
+*[Read in English](README.en.md)*
 
-A production-ready Retrieval-Augmented Generation (RAG) system built for **TechNova Solutions**, a fictional company used as a knowledge-base scenario. The system routes employee queries across three specialized domains — **HR**, **Technology**, and **Finance** — by combining LLM-based intent classification with per-domain retrieval chains. Full observability is provided through Langfuse tracing and an automated LLM-judge evaluator.
+# Sistema Multi-Agente RAG con Enrutamiento Inteligente
 
----
+Sistema de orquestacion multi-agente que resuelve el problema de **consultas mal enrutadas** en entornos empresariales. Un orquestador potenciado por LLM clasifica la intencion del usuario y enruta condicionalmente cada consulta al agente RAG especializado correcto (HR, Tech o Finance), generando respuestas fundamentadas en la documentacion de cada dominio. Todo el flujo de ejecucion queda trazado con **Langfuse** para observabilidad de grado productivo, y un **agente evaluador** automatizado puntua la calidad de cada respuesta en tres dimensiones.
 
-## Table of Contents
-
-1. [Architecture](#architecture)
-2. [Prerequisites](#prerequisites)
-3. [Installation](#installation)
-4. [How to Run](#how-to-run)
-5. [Project Structure](#project-structure)
-6. [Technical Decisions](#technical-decisions)
-7. [Usage Examples](#usage-examples)
-8. [Known Limitations](#known-limitations)
-9. [Future Improvements](#future-improvements)
+Construido con **LangChain** como framework de orquestacion, **ChromaDB** para almacenamiento vectorial, y **Langfuse** para trazabilidad y evaluacion de extremo a extremo.
 
 ---
 
-## Architecture
+## Tabla de Contenidos
+
+1. [Problema que Resuelve](#problema-que-resuelve)
+2. [Arquitectura](#arquitectura)
+3. [Prerrequisitos](#prerrequisitos)
+4. [Instalacion](#instalacion)
+5. [Como Ejecutar](#como-ejecutar)
+6. [Estructura del Proyecto](#estructura-del-proyecto)
+7. [Como Funciona](#como-funciona)
+8. [Decisiones Tecnicas](#decisiones-tecnicas)
+9. [Ejemplos de Uso](#ejemplos-de-uso)
+10. [Agente Evaluador (Bonus)](#agente-evaluador-bonus)
+11. [Observabilidad con Langfuse](#observabilidad-con-langfuse)
+12. [Queries de Prueba y Precision](#queries-de-prueba-y-precision)
+13. [Limitaciones Conocidas](#limitaciones-conocidas)
+14. [Mejoras Futuras](#mejoras-futuras)
+
+---
+
+## Problema que Resuelve
+
+Una empresa SaaS mediana recibe consultas de clientes a traves de multiples areas (HR, Soporte IT, Finanzas). El equipo de soporte esta desbordado porque los tickets se enrutan mal: preguntas de HR terminan en IT, consultas financieras llegan al equipo equivocado. Este sistema resuelve ese problema:
+
+1. **Clasifica automaticamente** la intencion de cada consulta entrante usando un LLM
+2. **La enruta condicionalmente** al agente RAG especializado que tiene acceso unicamente a la documentacion de su dominio
+3. **Genera respuestas fundamentadas** en documentos reales de la empresa (sin alucinaciones)
+4. **Traza el flujo de ejecucion completo** para que las clasificaciones erroneas y fallos de retrieval puedan depurarse
+5. **Evalua la calidad de las respuestas** automaticamente antes de que lleguen al cliente
+
+---
+
+## Arquitectura
+
+### Flujo General
 
 ```
-Documents (Markdown)
-       |
-       v
- DocumentLoader          <-- loads & splits markdown files
-       |
-       v
-RecursiveCharacterTextSplitter  (chunk_size=500, overlap=50)
-       |
-       v
-   ChromaDB              <-- local vector store, one collection per domain
-  /    |    \
-hr   tech  finance       <-- three independent retrievers
-  \    |    /
-   v   v   v
-Domain Agents            <-- HRAgent | TechAgent | FinanceAgent
-       ^
-       |
-  Orchestrator           <-- LLM intent classifier → routes to the right agent
-       |
-       v
-   Response              <-- answer + sources + trace metadata
-       |
-       v
-ResponseEvaluator        <-- optional LLM judge → scores sent to Langfuse
+Consulta del Usuario
+        |
+        v
+┌──────────────────────────┐
+│      Orquestador         │
+│   (classify_intent)      │──── Langfuse Trace: intent-classification
+│                          │
+│   intent: hr | tech |    │
+│   finance | unknown      │
+└────────────┬─────────────┘
+             |
+       ┌─────┼─────┐
+       v     v     v
+    ┌─────┐┌─────┐┌───────┐
+    │ HR  ││Tech ││Finance│
+    │Agent││Agent││ Agent │──── Langfuse Trace: rag-retrieval
+    └──┬──┘└──┬──┘└───┬───┘
+       |     |       |
+       v     v       v
+    ┌─────┐┌─────┐┌───────┐
+    │hr   ││tech ││finance│
+    │docs ││docs ││ docs  │     ChromaDB (3 colecciones)
+    └─────┘└─────┘└───────┘
+             |
+             v
+      Respuesta RAG
+      {answer, sources, intent, confidence}
+             |
+             v
+┌──────────────────────────┐
+│   ResponseEvaluator      │      LLM Judge (bonus)
+│   relevance: 1-10        │
+│   completeness: 1-10     │──── Langfuse Scores API
+│   accuracy: 1-10         │
+└──────────────────────────┘
 ```
+
+### Diagrama Mermaid
 
 ```mermaid
 graph TD
-    A[User Query] --> B[Orchestrator]
-    B --> C{Intent Classifier\ngpt-4o-mini}
+    A[Consulta del Usuario] --> B[Orquestador]
+    B --> C{Clasificador de Intencion<br/>gpt-4o-mini}
     C -->|hr| D[HRAgent]
     C -->|tech| E[TechAgent]
     C -->|finance| F[FinanceAgent]
-    C -->|unknown| G[Fallback Response]
-    D --> H[ChromaDB hr_docs]
-    E --> I[ChromaDB tech_docs]
-    F --> J[ChromaDB finance_docs]
-    H --> K[RAG Answer]
+    C -->|unknown| G[Respuesta Generica]
+    D --> H[(ChromaDB<br/>hr_docs)]
+    E --> I[(ChromaDB<br/>tech_docs)]
+    F --> J[(ChromaDB<br/>finance_docs)]
+    H --> K[Respuesta RAG + Fuentes]
     I --> K
     J --> K
     K --> L[Langfuse Trace]
     K --> M[ResponseEvaluator]
-    M --> L
+    M -->|scores| L
 ```
 
 ---
 
-## Prerequisites
+## Prerrequisitos
 
-- **Python 3.11+**
-- **OpenAI API key** — required for embeddings and LLM inference
-- **Langfuse account** (optional) — required only for distributed tracing and evaluation scores. Sign up at [cloud.langfuse.com](https://cloud.langfuse.com) for free.
-- **Jupyter** — included in `requirements.txt`; any Jupyter-compatible environment works (VS Code, JupyterLab, classic Notebook)
+| Requisito | Detalle |
+|-----------|---------|
+| **Python** | 3.11 o superior |
+| **OpenAI API key** | Requerida para embeddings (text-embedding-ada-002) e inferencia LLM (gpt-4o-mini) |
+| **Cuenta Langfuse** | Opcional pero recomendada. Tier gratuito en [cloud.langfuse.com](https://cloud.langfuse.com). Necesaria para trazabilidad y el agente evaluador |
+| **Jupyter** | Incluido en las dependencias. Cualquier entorno compatible funciona (VS Code, JupyterLab, Notebook clasico) |
 
 ---
 
-## Installation
+## Instalacion
+
+### Paso 1: Clonar el repositorio
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/ludwingra/multi-agent-rag.git
 cd multi-agent-rag
+```
 
-# 2. Create and activate a virtual environment
+### Paso 2: Crear un entorno virtual
+
+```bash
 python -m venv .venv
-source .venv/bin/activate        # Linux / macOS
+source .venv/bin/activate        # macOS / Linux
 # .venv\Scripts\activate         # Windows
+```
 
-# 3. Install dependencies
+### Paso 3: Instalar dependencias
+
+```bash
 pip install -r requirements.txt
+```
 
-# 4. Configure environment variables
+Esto instala 12 paquetes: `langchain`, `langchain-openai`, `langchain-community`, `langchain-chroma`, `langfuse`, `openai`, `chromadb`, `tiktoken`, `python-dotenv`, `jupyter`, `ipykernel`, `pydantic-settings`.
+
+### Paso 4: Configurar variables de entorno
+
+```bash
 cp .env.example .env
 ```
 
-Edit `.env` and fill in your credentials:
+Editar `.env` con tus credenciales:
 
 ```dotenv
-OPENAI_API_KEY=sk-...            # required
-LANGFUSE_PUBLIC_KEY=pk-lf-...   # optional (tracing)
-LANGFUSE_SECRET_KEY=sk-lf-...   # optional (tracing)
-LANGFUSE_HOST=https://cloud.langfuse.com
+OPENAI_API_KEY=sk-...                          # OBLIGATORIO
+LANGFUSE_PUBLIC_KEY=pk-lf-...                  # Opcional (para trazabilidad)
+LANGFUSE_SECRET_KEY=sk-lf-...                  # Opcional (para trazabilidad)
+LANGFUSE_BASE_URL=https://cloud.langfuse.com   # Opcional (para trazabilidad)
 ```
 
-> If you skip Langfuse credentials the system still runs; tracing calls are no-ops.
+> **Nota:** Si no se configuran las credenciales de Langfuse, el sistema funciona normalmente. Las llamadas de tracing se convierten en no-ops y el agente evaluador no enviara scores.
+
+### Paso 5: Verificar la instalacion
+
+```bash
+python -c "from src.config import Settings; Settings(); print('OK')"
+```
+
+Si imprime `OK`, el entorno esta correctamente configurado.
 
 ---
 
-## How to Run
+## Como Ejecutar
 
-The main entry point is the Jupyter notebook:
+### Opcion A: Jupyter Notebook (recomendado)
+
+El punto de entrada principal es el notebook:
 
 ```bash
 jupyter notebook notebooks/multi_agent_system.ipynb
-# or
+# o
 jupyter lab notebooks/multi_agent_system.ipynb
 ```
 
-Run cells in order. The notebook is divided into six sections:
+**Ejecutar todas las celdas en orden.** El notebook esta organizado en 6 secciones:
 
-| Section | Content |
-|---------|---------|
-| 1 | Environment setup — imports, settings, Langfuse handler |
-| 2 | Document loading — reads markdown files from `data/` and splits them |
-| 3 | Vector store initialization — creates or loads ChromaDB collections |
-| 4 | Agent and orchestrator initialization — wires retrievers to domain agents |
-| 5 | Batch testing — runs all 16 queries from `data/test_queries.json` and reports routing accuracy |
-| 6 | Observability — displays Langfuse trace URLs; optionally runs `ResponseEvaluator` to score responses |
+| Seccion | Que hace | Tiempo estimado |
+|---------|----------|----------------|
+| **1. Setup e Imports** | Carga variables de entorno, verifica API keys, muestra versiones de librerias | Instantaneo |
+| **2. Carga de Documentos y Vector Stores** | Lee 60 documentos markdown, los fragmenta en chunks, crea/carga 3 colecciones ChromaDB | ~30-60s primera vez, <1s despues |
+| **3. Definicion de Agentes RAG** | Instancia HRAgent, TechAgent, FinanceAgent y prueba cada uno individualmente | ~10s |
+| **4. Orquestador y Enrutamiento Inteligente** | Demuestra clasificacion de intencion y pipeline completo de enrutamiento | ~15s |
+| **5. Pruebas y Ejemplos — Batch Testing** | Ejecuta las 16 queries de prueba, mide precision del clasificador, muestra tabla de resultados | ~2-3 min |
+| **6. Integracion con Langfuse — Observabilidad** | Verifica conexion con Langfuse, ejecuta consulta trazada, explica navegacion del dashboard | ~5s |
 
-**First run only:** ChromaDB will ingest and embed all documents (~60 markdown files). This takes roughly 30–60 seconds depending on network latency to the OpenAI embeddings API. Subsequent runs load the persisted store from `./chroma_db/` instantly.
+**Nota sobre la primera ejecucion:** La seccion 2 llama a la API de OpenAI Embeddings para vectorizar los 60 documentos. Esto toma 30-60 segundos. Las ejecuciones posteriores cargan el vector store persistido desde `./chroma_db/` instantaneamente.
 
-**Evaluator (optional):** `evaluator.py` contains `ResponseEvaluator`. Section 6 of the notebook shows how to instantiate it and run `evaluate_batch()` against the batch results. Scores appear in your Langfuse dashboard under the trace for each query.
+**Costo estimado de API:** Una ejecucion completa del notebook (~20 llamadas al LLM) consume aproximadamente 20-30K tokens de gpt-4o-mini (~$0.01-0.02 USD).
+
+### Opcion B: Smoke tests por modulo
+
+Cada modulo puede probarse independientemente desde la terminal:
+
+```bash
+# Probar carga de documentos (sin llamadas a API)
+python -m src.document_loader
+
+# Probar creacion de vector stores (requiere OPENAI_API_KEY)
+python -m src.vector_store
+
+# Probar inicializacion de agentes (requiere OPENAI_API_KEY + ChromaDB poblada)
+python -m src.agents
+```
+
+### Opcion C: Python interactivo / script
+
+```python
+from dotenv import load_dotenv
+load_dotenv()
+
+from src.agents import Orchestrator
+
+orch = Orchestrator()
+result = orch.route("How do I request vacation days?")
+print(result["intent"])    # "hr"
+print(result["answer"])    # Respuesta fundamentada en documentos de HR
+```
 
 ---
 
-## Project Structure
+## Estructura del Proyecto
 
 ```
-.
-├── .env.example              # Environment variable template (4 vars)
-├── .gitignore
-├── requirements.txt          # 12 Python dependencies
-├── evaluator.py              # ResponseEvaluator — LLM judge with Langfuse scoring
+multi-agent-rag/
+│
+├── .env.example                  # Plantilla de variables de entorno (4 variables)
+├── .gitignore                    # Excluye .env, chroma_db/, __pycache__/, etc.
+├── requirements.txt              # 12 dependencias Python
+├── README.md                     # Este archivo (espanol)
+├── README.en.md                  # Version en ingles
+├── evaluator.py                  # ResponseEvaluator — juez LLM automatizado (bonus)
+│
 ├── data/
-│   ├── hr_docs/              # 20 synthetic HR documents (TechNova Solutions)
-│   ├── tech_docs/            # 20 synthetic IT/Tech documents
-│   ├── finance_docs/         # 20 synthetic Finance documents
-│   └── test_queries.json     # 16 labeled test queries with expected intents
+│   ├── hr_docs/                  # 20 documentos sinteticos de politicas de RRHH
+│   ├── tech_docs/                # 20 documentos sinteticos de soporte IT/Tech
+│   ├── finance_docs/             # 20 documentos sinteticos de politicas financieras
+│   └── test_queries.json         # 16 queries de prueba etiquetadas con intenciones esperadas
+│
 ├── notebooks/
-│   └── multi_agent_system.ipynb  # 6-section notebook — main entry point
+│   └── multi_agent_system.ipynb  # Notebook principal — 6 secciones, 27 celdas
+│
 └── src/
     ├── __init__.py
-    ├── config.py             # Pydantic Settings — loads env vars with validation
-    ├── tracing.py            # Langfuse integration — handler factory and client
-    ├── document_loader.py    # DocumentLoader — reads and splits markdown documents
-    ├── vector_store.py       # VectorStoreManager — ChromaDB lifecycle management
+    ├── config.py                 # Pydantic Settings — carga y validacion de variables de entorno
+    ├── tracing.py                # Fabrica de cliente Langfuse y callback handler
+    ├── document_loader.py        # DocumentLoader — lee archivos .md y los fragmenta en chunks
+    ├── vector_store.py           # VectorStoreManager — CRUD de ChromaDB y fabrica de retrievers
     └── agents/
-        ├── __init__.py
-        ├── __main__.py       # Smoke test — validates agent initialization
-        ├── base_agent.py     # BaseRAGAgent — abstract base with retrieval chain
-        ├── hr_agent.py       # HRAgent — HR domain specialist
-        ├── tech_agent.py     # TechAgent — IT/Tech domain specialist
-        ├── finance_agent.py  # FinanceAgent — Finance domain specialist
-        └── orchestrator.py   # Orchestrator — intent classification, routing, tracing
+        ├── __init__.py           # Exports publicos: HRAgent, TechAgent, FinanceAgent, Orchestrator
+        ├── __main__.py           # Punto de entrada para smoke test
+        ├── base_agent.py         # BaseRAGAgent — clase base abstracta con cadena de retrieval
+        ├── hr_agent.py           # HRAgent — especialista en dominio de RRHH
+        ├── tech_agent.py         # TechAgent — especialista en dominio IT/Tech
+        ├── finance_agent.py      # FinanceAgent — especialista en dominio Finanzas
+        └── orchestrator.py       # Orchestrator — clasificacion de intencion + enrutamiento condicional + tracing
 ```
 
----
+### Base de Conocimiento (data/)
 
-## Technical Decisions
+60 documentos sinteticos en formato Markdown para una empresa ficticia llamada **TechNova Solutions** (SaaS B2B, ~500 empleados). Cada documento tiene entre 450-900 palabras y cubre politicas, procedimientos y guias corporativas realistas. Las referencias cruzadas entre documentos dan coherencia a la base de conocimiento.
 
-### 1. LangChain 1.2.x as the orchestration framework
+| Dominio | Archivos | Chunks | Temas |
+|---------|----------|--------|-------|
+| `hr_docs/` | 20 | ~239 | Vacaciones, beneficios, onboarding, evaluaciones de desempeno, compensacion, codigo de conducta |
+| `tech_docs/` | 20 | ~264 | Configuracion VPN, respuesta a incidentes, acceso a GitHub, CI/CD, seguridad, setup de laptop |
+| `finance_docs/` | 20 | ~242 | Reembolso de gastos, politica de viajes, facturas, presupuestos, tarjeta corporativa, cumplimiento fiscal |
 
-LangChain was chosen for its modular chain composition API (`prompt | llm`) and its first-class retrieval chain abstractions. The `langchain-openai`, `langchain-chroma`, and `langchain-core` packages provide clean separation of concerns: the LLM, the vector store, and the chain logic are independently swappable. This reduces vendor lock-in and simplifies unit testing of individual components.
+### Queries de Prueba (data/test_queries.json)
 
-### 2. ChromaDB for vector storage
+16 consultas etiquetadas que cubren todos los dominios y niveles de dificultad:
 
-ChromaDB is a lightweight, embedded vector database that persists to a local directory (`./chroma_db/`) with no external infrastructure. The store is initialized idempotently: if the collection already exists it is loaded; otherwise it is created from the markdown documents. This design makes the project fully self-contained — no Pinecone, Weaviate, or other managed service is required to run it.
-
-### 3. gpt-4o-mini as the inference model
-
-`gpt-4o-mini` provides a strong balance of quality and cost for this use case. Both the intent classifier and the RAG response chains use the same model, which simplifies configuration and keeps token costs low during batch evaluation over 16+ queries. The model name is configurable via the `MODEL_NAME` environment variable, so swapping to `gpt-4o` requires no code changes.
-
-### 4. RecursiveCharacterTextSplitter with chunk_size=500, overlap=50
-
-Small chunks (500 characters) improve retrieval precision: each chunk contains a focused piece of information rather than mixing multiple topics. An overlap of 50 characters preserves sentence continuity at chunk boundaries, reducing the risk of splitting a key sentence across two chunks that are retrieved independently.
-
-### 5. LLM-based intent routing (no keyword matching)
-
-The Orchestrator uses a dedicated `gpt-4o-mini` classification call with a structured prompt that returns JSON (`intent`, `confidence`, `reasoning`). This approach handles paraphrasing, ambiguous queries, and cross-domain questions more robustly than keyword matching. Confidence thresholds (< 0.5) trigger a low-confidence warning attached to the Langfuse span for post-hoc analysis.
-
-### 6. Langfuse for end-to-end observability
-
-Each query creates a parent Langfuse trace with two child spans: `intent-classification` and `rag-retrieval`. The `ResponseEvaluator` then sends numeric scores (`relevance`, `completeness`, `accuracy`, `overall`, each 1–10) back to the same trace via the Scores API. This makes it possible to monitor routing accuracy and response quality in a persistent dashboard without modifying application code.
+| Categoria | Cantidad | Ejemplos |
+|-----------|----------|----------|
+| HR | 4 | Politica de vacaciones, seguro medico, onboarding, evaluaciones |
+| Tech | 4 | Configuracion VPN, acceso a GitHub, incidentes de produccion, setup de laptop |
+| Finance | 5 | Reportes de gastos, per diem de viaje, facturas, requisiciones de compra, tarjeta corporativa |
+| Unknown | 1 | Pronostico del clima (fuera de dominio) |
+| Dificil/ambiguo | 2 | Consultas cross-dominio que prueban casos limite de clasificacion |
 
 ---
 
-## Usage Examples
+## Como Funciona
 
-### HR query
+### Paso 1 — Clasificacion de Intencion
+
+Cuando llega una consulta, el `Orchestrator` la envia a `classify_intent()` que usa `gpt-4o-mini` con un prompt estructurado. El LLM responde en JSON:
+
+```json
+{"intent": "tech", "confidence": 0.95, "reasoning": "La configuracion de VPN es un tema de IT"}
+```
+
+Intenciones validas: `hr`, `tech`, `finance`, `unknown`. Las consultas clasificadas como `unknown` reciben una respuesta generica sin invocar ningun agente RAG.
+
+### Paso 2 — Enrutamiento Condicional
+
+Basandose en la intencion clasificada, el Orchestrator despacha la consulta al agente especializado correspondiente (`HRAgent`, `TechAgent` o `FinanceAgent`).
+
+### Paso 3 — Retrieval RAG y Generacion de Respuesta
+
+El agente seleccionado ejecuta una cadena de retrieval:
+1. El **retriever** busca en ChromaDB los 4 chunks mas similares en la coleccion de su dominio
+2. Los chunks se inyectan como `{context}` en el prompt de sistema especifico del agente
+3. `gpt-4o-mini` genera una respuesta **fundamentada unicamente en los documentos recuperados**
+
+### Paso 4 — Trazabilidad con Langfuse
+
+Cada consulta crea un trace padre con dos spans hijos:
+```
+Trace: user-query
+  ├── Span: intent-classification  (input → {intent, confidence, reasoning})
+  └── Span: rag-retrieval          (query + intent → {answer, sources})
+```
+
+### Paso 5 — Evaluacion Automatizada (bonus)
+
+El `ResponseEvaluator` envia la respuesta a otra llamada LLM que la puntua en tres dimensiones (1-10): **relevancia**, **completitud** y **precision**. Los scores se envian a Langfuse via la API de Scores, habilitando dashboards de monitoreo de calidad.
+
+---
+
+## Decisiones Tecnicas
+
+### 1. LangChain como framework de orquestacion
+
+LangChain provee abstracciones de grado productivo para composicion de cadenas (`prompt | llm`), cadenas de retrieval (`create_retrieval_chain`) y trazabilidad basada en callbacks. La estructura modular de paquetes (`langchain-openai`, `langchain-chroma`, `langchain-core`) permite separacion limpia de responsabilidades — el LLM, el vector store y la logica de cadena son intercambiables independientemente sin refactorizar. Esto sigue estandares de la industria para mantenibilidad y reduce el acoplamiento con proveedores.
+
+### 2. ChromaDB para almacenamiento vectorial
+
+Se eligio ChromaDB como base de datos vectorial ligera y embebida que persiste en un directorio local (`./chroma_db/`) sin infraestructura externa. La inicializacion es idempotente: si las colecciones existen en disco se cargan; si no, se crean desde los documentos fuente. Esto hace que el proyecto sea **completamente autocontenido** — no se requiere Pinecone, Weaviate ni ningun servicio en la nube.
+
+### 3. gpt-4o-mini como modelo de inferencia
+
+`gpt-4o-mini` ofrece un balance solido entre calidad y costo. Tanto el clasificador de intencion como los agentes RAG comparten el mismo modelo, simplificando la configuracion. El nombre del modelo es configurable via la variable de entorno `MODEL_NAME`, por lo que cambiar a `gpt-4o` no requiere cambios en el codigo. Para 16 queries del batch, el costo total es aproximadamente $0.01-0.02 USD.
+
+### 4. RecursiveCharacterTextSplitter (chunk_size=500, overlap=50)
+
+Chunks pequenos (500 caracteres) mejoran la precision del retrieval — cada chunk contiene una pieza de informacion enfocada en vez de mezclar multiples temas. Un solapamiento de 50 caracteres preserva la continuidad de oraciones en los limites de los chunks. Estos valores estan ajustados para los documentos de politicas corporativas de longitud corta-media de la base de conocimiento.
+
+### 5. Enrutamiento basado en LLM (sin matching de palabras clave)
+
+El Orchestrator usa una llamada de clasificacion dedicada al LLM con un prompt estructurado que retorna JSON (`intent`, `confidence`, `reasoning`). Este enfoque maneja parafraseo, consultas ambiguas y preguntas cross-dominio de forma mas robusta que el matching por palabras clave o clasificadores basados en reglas. El prompt incluye reglas de desambiguacion para casos limite (ej: "setup de laptop durante onboarding" enruta a HR, no a Tech).
+
+### 6. Langfuse para observabilidad de extremo a extremo
+
+Cada consulta crea un trace jerarquico en Langfuse con spans hijos para clasificacion y retrieval. Esto permite:
+- **Depurar clasificaciones erroneas** inspeccionando el input/output del span de clasificacion
+- **Analizar fallos de retrieval** revisando que chunks se retornaron
+- **Monitorear calidad de respuestas** via scores de evaluacion automatizada
+- **Respuesta ante incidentes en produccion** filtrando traces por usuario, intencion o nivel de confianza
+
+---
+
+## Ejemplos de Uso
+
+### Consulta de HR
 
 ```python
 from src.agents.orchestrator import Orchestrator
 
-orchestrator = Orchestrator()
-result = orchestrator.route("How many vacation days do I get per year?")
-print(result)
+orch = Orchestrator()
+result = orch.route("How many vacation days do I get per year?")
 ```
 
+Respuesta:
 ```json
 {
   "query": "How many vacation days do I get per year?",
   "intent": "hr",
-  "confidence": 0.98,
-  "reasoning": "Query asks about PTO policy, which falls under HR.",
-  "answer": "TechNova Solutions provides 15 PTO days per year for full-time employees...",
-  "sources": ["data/hr_docs/pto_policy.md"],
-  "agent": "HRAgent"
+  "confidence": 0.95,
+  "reasoning": "La consulta pregunta sobre politica de PTO/vacaciones, que es de HR.",
+  "answer": "TechNova Solutions provee 15 dias de PTO por ano para empleados de tiempo completo...",
+  "sources": ["vacation-policy.md", "benefits-overview.md"],
+  "agent": "hr_agent"
 }
 ```
 
-### Tech query
+### Consulta de Tech
 
 ```python
-result = orchestrator.route("How do I connect to the company VPN from home?")
+result = orch.route("How do I connect to the company VPN from home?")
 ```
 
+Respuesta:
 ```json
 {
   "query": "How do I connect to the company VPN from home?",
   "intent": "tech",
-  "confidence": 0.97,
-  "reasoning": "Query involves VPN configuration, classified as tech.",
-  "answer": "To connect to TechNova's VPN, download the GlobalProtect client...",
-  "sources": ["data/tech_docs/vpn_setup.md"],
-  "agent": "TechAgent"
+  "confidence": 0.95,
+  "reasoning": "La configuracion de VPN es un tema de infraestructura IT.",
+  "answer": "Para conectarte a la VPN de TechNova, descarga el cliente GlobalProtect...",
+  "sources": ["vpn-setup-guide.md"],
+  "agent": "tech_agent"
 }
 ```
 
-### Finance query
+### Consulta de Finance
 
 ```python
-result = orchestrator.route("How do I submit an expense for a client dinner?")
+result = orch.route("How do I submit an expense for a client dinner?")
 ```
 
+Respuesta:
 ```json
 {
   "query": "How do I submit an expense for a client dinner?",
   "intent": "finance",
-  "confidence": 0.96,
-  "reasoning": "Expense reimbursement falls under Finance policies.",
-  "answer": "Submit your expense through the Concur portal within 30 days...",
-  "sources": ["data/finance_docs/expense_policy.md"],
-  "agent": "FinanceAgent"
+  "confidence": 0.95,
+  "reasoning": "El reembolso de gastos es un tema del departamento de finanzas.",
+  "answer": "Presenta tu reporte de gastos dentro de los 30 dias calendario...",
+  "sources": ["expense-reimbursement.md", "corporate-card-policy.md"],
+  "agent": "finance_agent"
 }
+```
+
+### Enrutamiento por Lotes con Precision
+
+```python
+import json
+
+with open("data/test_queries.json") as f:
+    queries = json.load(f)["test_queries"]
+
+batch = orch.batch_route(queries)
+print(f"Precision: {batch['accuracy']:.1%}")  # ~93-100%
 ```
 
 ---
 
-## Known Limitations
+## Agente Evaluador (Bonus)
 
-- **No streaming** — responses are returned in a single blocking call. There is no token-by-token streaming to a UI or terminal.
-- **No conversation memory** — each call to `orchestrator.route()` is stateless. Follow-up questions that depend on prior context will not resolve correctly.
-- **Synthetic documents only** — the knowledge base contains 60 auto-generated markdown files. Answers reflect fictional TechNova policies and should not be used as a reference for real company procedures.
-- **Single model for all tasks** — the same `gpt-4o-mini` model handles both the intent classifier and domain-specific RAG responses. Complex financial or technical questions may benefit from a more capable model (e.g., `gpt-4o`).
-- **No authentication or access control** — the orchestrator does not enforce per-user permissions. Any caller can query any domain.
+El `ResponseEvaluator` en `evaluator.py` implementa un juez LLM automatizado que puntua cada respuesta RAG en tres dimensiones:
+
+| Dimension | Escala | Que mide |
+|-----------|--------|----------|
+| **Relevancia** | 1-10 | ¿La respuesta aborda directamente la pregunta del usuario? |
+| **Completitud** | 1-10 | ¿Cubre todos los aspectos importantes? |
+| **Precision** | 1-10 | ¿Esta fundamentada en los documentos fuente (sin alucinaciones)? |
+
+### Como funciona
+
+1. El evaluador recibe la consulta original, la respuesta del agente, la intencion clasificada y los documentos fuente
+2. Envia un prompt estructurado a `gpt-4o-mini` solicitando scores en JSON
+3. Parsea los scores y los envia a Langfuse via `langfuse.score()` — cuatro scores por respuesta (relevancia, completitud, precision, general)
+4. Los scores aparecen en el dashboard de Langfuse asociados a cada trace
+
+### Uso
+
+```python
+from evaluator import ResponseEvaluator
+from src.tracing import get_langfuse_client
+from src.config import Settings
+from langchain_openai import ChatOpenAI
+
+settings = Settings()
+langfuse = get_langfuse_client()
+llm = ChatOpenAI(model=settings.MODEL_NAME, api_key=settings.OPENAI_API_KEY)
+
+evaluator = ResponseEvaluator(langfuse_client=langfuse, llm=llm)
+
+# Evaluar una respuesta individual
+evaluation = evaluator.evaluate_response(
+    trace_id="...",
+    query="How many vacation days do I get?",
+    answer="TechNova provee 15 dias de PTO...",
+    intent="hr",
+    sources=["vacation-policy.md"]
+)
+# → {"relevance": 9, "completeness": 8, "accuracy": 9, "overall": 8.67, "summary": "..."}
+
+# Evaluar un lote y generar reporte
+evaluations = evaluator.evaluate_batch(batch_results["results"])
+print(evaluator.generate_report(evaluations))
+```
 
 ---
 
-## Future Improvements
+## Observabilidad con Langfuse
 
-- **Streaming responses** — integrate LangChain's streaming interface and surface token-by-token output to a web UI or CLI for a more responsive user experience.
-- **Conversation memory** — add a `ConversationBufferMemory` or external session store so agents can resolve follow-up questions that reference earlier turns.
-- **Real document ingestion** — replace the synthetic dataset with a pipeline that ingests PDF, DOCX, and Confluence pages from an actual company knowledge base, with incremental updates when documents change.
-- **Model routing by complexity** — route simple factual queries to `gpt-4o-mini` and complex multi-step questions to `gpt-4o` (or `o3-mini` for reasoning-heavy tasks) to optimize cost vs. quality dynamically.
-- **Web UI** — wrap the orchestrator in a FastAPI backend with a React or Streamlit frontend so non-technical users can interact with the system through a chat interface.
+### Que se traza
+
+Cada llamada a `orchestrator.route()` crea un trace jerarquico:
+
+```
+Trace: user-query
+│
+├── Span: intent-classification
+│     input:  "How do I request time off?"
+│     output: {"intent": "hr", "confidence": 0.95, "reasoning": "..."}
+│     modelo: gpt-4o-mini
+│     tokens: prompt_tokens + completion_tokens
+│
+└── Span: rag-retrieval
+      input:  {"query": "...", "intent": "hr"}
+      output: {"answer": "...", "sources": ["vacation-policy.md"]}
+      modelo: gpt-4o-mini
+      chunks: documentos recuperados de ChromaDB
+```
+
+### Como explorar los traces
+
+1. Ir al dashboard de Langfuse en `https://cloud.langfuse.com`
+2. Navegar a **Tracing > Traces**
+3. Filtrar por nombre de trace `user-query` o por `user_id`
+4. Hacer click en cualquier trace para inspeccionar el arbol completo de spans, latencias, uso de tokens e inputs/outputs
+5. Revisar la pestana **Scores** para ver las metricas de evaluacion (si se ejecuto el evaluador)
+
+### Configurar Langfuse
+
+1. Crear una cuenta gratuita en [cloud.langfuse.com](https://cloud.langfuse.com)
+2. Crear un nuevo proyecto
+3. Ir a **Settings > API Keys > Create new API keys**
+4. Copiar la Public Key (`pk-lf-...`) y la Secret Key (`sk-lf-...`) al archivo `.env`
 
 ---
 
-*Built as part of the Henry IA Engineer program — Module 3: Multi-Agent Systems.*
+## Queries de Prueba y Precision
+
+El sistema se prueba con 16 consultas etiquetadas en `data/test_queries.json`. Cada query tiene un `expected_intent` y un nivel de `difficulty`.
+
+### Resultados esperados
+
+- **Queries faciles** (un solo dominio, intencion clara): ~100% precision
+- **Queries medias** (especificas pero no ambiguas): ~100% precision
+- **Queries dificiles** (cross-dominio, ambiguas): ~85-100% precision segun el ajuste del prompt
+
+El prompt de clasificacion incluye reglas de desambiguacion para casos limite comunes:
+- "Setup de laptop nueva" en contexto de onboarding enruta a `hr` (no a `tech`)
+- "Implicaciones fiscales de stock options" enruta a `hr` (beneficio laboral, no contabilidad)
+
+Precision global esperada: **87-100%** en las 16 queries.
+
+---
+
+## Limitaciones Conocidas
+
+- **Sin streaming** — las respuestas se retornan en una unica llamada bloqueante. No hay streaming token a token hacia una UI.
+- **Sin memoria conversacional** — cada llamada a `orchestrator.route()` es stateless. Preguntas de seguimiento que dependan de contexto previo no se resolveran correctamente.
+- **Solo documentos sinteticos** — la base de conocimiento contiene 60 archivos markdown autogenerados para una empresa ficticia. Las respuestas reflejan politicas de TechNova Solutions, no procedimientos de empresas reales.
+- **Modelo unico para todas las tareas** — `gpt-4o-mini` maneja tanto la clasificacion como las respuestas RAG. Consultas complejas podrian beneficiarse de un modelo mas capaz.
+- **Sin autenticacion** — el orquestador no impone permisos por usuario. Cualquier llamante puede consultar cualquier dominio.
+- **Base de conocimiento solo en ingles** — los documentos fuente estan en ingles. Consultas en otros idiomas pueden producir resultados de menor calidad.
+
+---
+
+## Mejoras Futuras
+
+- **Streaming de respuestas** — integrar la interfaz de streaming de LangChain para salida en tiempo real token a token
+- **Memoria conversacional** — agregar memoria basada en sesiones para que los agentes puedan manejar preguntas de seguimiento
+- **Ingesta de documentos reales** — reemplazar los datos sinteticos con un pipeline para PDF, DOCX y paginas de Confluence
+- **Enrutamiento de modelo por complejidad** — usar `gpt-4o-mini` para consultas simples y `gpt-4o` para las complejas
+- **Interfaz web** — envolver el orquestador en un backend FastAPI con un frontend Streamlit o React
+- **Dominios adicionales** — agregar agentes de Legal, Ventas o Producto con sus propias bases de conocimiento
+- **Fallback por confianza** — enrutar clasificaciones de baja confianza a un revisor humano en vez del agente de mejor suposicion
+
+---
+
+*Construido como parte del programa Henry IA Engineer — Modulo 3: Sistemas Multi-Agente.*
